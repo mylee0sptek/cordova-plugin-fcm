@@ -85,10 +85,11 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:userInfoMutable
                                                        options:0
                                                          error:&error];
-    [FCMPlugin.fcmPlugin notifyOfMessage:jsonData];
+    // [FCMPlugin.fcmPlugin notifyOfMessage:jsonData];
     
     // Change this to your preferred presentation option
-    completionHandler(UNNotificationPresentationOptionNone);
+    // completionHandler(UNNotificationPresentationOptionNone);
+    completionHandler(UNAuthorizationOptionSound | UNAuthorizationOptionAlert);
 }
 
 // Handle notification messages after display notification is tapped by the user.
@@ -113,6 +114,12 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
     NSLog(@"APP WAS CLOSED DURING PUSH RECEPTION Saved data: %@", jsonData);
     lastPush = jsonData;
     
+    UIApplication *application = [UIApplication sharedApplication];
+    if (application.applicationState == UIApplicationStateActive) {
+        if (lastPush != nil) {
+            [FCMPlugin.fcmPlugin notifyOfMessage:lastPush];
+        }
+    }
     completionHandler();
 }
 

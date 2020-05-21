@@ -30,6 +30,11 @@ static FCMPlugin *fcmPluginInstance;
         CDVPluginResult* pluginResult = nil;
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        
+        NSData* lastPush = [AppDelegate getLastPush];
+        if (lastPush != nil) {
+            [FCMPlugin.fcmPlugin notifyOfMessage:lastPush];
+        }
     }];
 }
 
@@ -137,7 +142,9 @@ static FCMPlugin *fcmPluginInstance;
     notificatorReceptorReady = YES;
     NSData* lastPush = [AppDelegate getLastPush];
     if (lastPush != nil) {
-        [FCMPlugin.fcmPlugin notifyOfMessage:lastPush];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [FCMPlugin.fcmPlugin notifyOfMessage:lastPush];
+        });
     }
     
     CDVPluginResult* pluginResult = nil;
@@ -149,7 +156,17 @@ static FCMPlugin *fcmPluginInstance;
     NSString* JSONString = [[NSString alloc] initWithBytes:[payload bytes] length:[payload length] encoding:NSUTF8StringEncoding];
     NSString* notifyJS = [NSString stringWithFormat:@"%@(%@);", notificationCallback, JSONString];
     NSLog(@"stringByEvaluatingJavaScriptFromString %@", notifyJS);
-    [self runJS:notifyJS];
+    
+    NSError *error;
+    NSDictionary *dicData = [NSJSONSerialization JSONObjectWithData:payload options:0 error:&error];
+    NSString *url = [dicData objectForKey:@"url"];
+    if (url != nil && [url length] > 0) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            //[self runJS:notifyJS];
+            NSURLRequest *request = [[NSURLRequest alloc] initWithURL:[NSURL URLWithString:url]];
+            [(WKWebView *)self.webView loadRequest:request];
+        });
+    }
 }
 
 - (void)notifyFCMTokenRefresh:(NSString *)token {

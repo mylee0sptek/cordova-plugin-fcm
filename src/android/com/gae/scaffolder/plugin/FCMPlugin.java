@@ -242,6 +242,10 @@ public class FCMPlugin extends CordovaPlugin {
     }
 
     public static void sendPushPayload(Map<String, Object> payload) {
+        if (true) {
+            lastPush = payload;
+            return;
+        }
         Log.d(TAG, "==> FCMPlugin sendPushPayload");
         Log.d(TAG, "\tnotificationCallBackReady: " + notificationCallBackReady);
         Log.d(TAG, "\tgWebView: " + gWebView);
@@ -277,6 +281,30 @@ public class FCMPlugin extends CordovaPlugin {
             gWebView.sendJavascript(callBack);
         } catch (Exception e) {
             Log.d(TAG, "\tERROR sendRefreshToken: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void onResume(boolean multitasking) {
+        super.onResume(multitasking);
+        Log.d(TAG, "==> FCMPlugin onResume");
+        if (lastPush != null) {
+            final Object url = lastPush.get("url");
+            lastPush = null;
+            if (url instanceof String) {
+                cordova.getThreadPool().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        android.os.SystemClock.sleep(100L);
+                        webView.getView().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                webView.showWebPage((String) url, false, false, null);
+                            }
+                        });
+                    }
+                });
+            }
         }
     }
 
