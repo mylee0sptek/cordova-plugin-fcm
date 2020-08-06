@@ -242,6 +242,12 @@ public class FCMPlugin extends CordovaPlugin {
     }
 
     public static void sendPushPayload(Map<String, Object> payload) {
+        // kicte add begin
+        if (true) {
+            lastPush = payload;
+            return;
+        }
+        // kicte add end
         Log.d(TAG, "==> FCMPlugin sendPushPayload");
         Log.d(TAG, "\tnotificationCallBackReady: " + notificationCallBackReady);
         Log.d(TAG, "\tgWebView: " + gWebView);
@@ -279,6 +285,32 @@ public class FCMPlugin extends CordovaPlugin {
             Log.d(TAG, "\tERROR sendRefreshToken: " + e.getMessage());
         }
     }
+
+    // kicte add begin
+    @Override
+    public void onResume(boolean multitasking) {
+        super.onResume(multitasking);
+        Log.d(TAG, "==> FCMPlugin onResume");
+        if (lastPush != null) {
+            final Object url = lastPush.get("url");
+            lastPush = null;
+            if (url instanceof String) {
+                cordova.getThreadPool().execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        android.os.SystemClock.sleep(100L);
+                        webView.getView().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                webView.showWebPage((String) url, false, false, null);
+                            }
+                        });
+                    }
+                });
+            }
+        }
+    }
+    // kicte add end
 
     @Override
     public void onDestroy() {

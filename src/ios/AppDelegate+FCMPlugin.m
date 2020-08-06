@@ -85,10 +85,23 @@ NSString *const kGCMMessageIDKey = @"gcm.message_id";
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:userInfoMutable
                                                        options:0
                                                          error:&error];
-    [FCMPlugin.fcmPlugin notifyOfMessage:jsonData];
+    // kicte modify begin
+    if (NO) {
+        // kicte original
+        [FCMPlugin.fcmPlugin notifyOfMessage:jsonData];
+    }
+    // kicte modify end
     
     // Change this to your preferred presentation option
-    completionHandler(UNNotificationPresentationOptionNone);
+    // kicte modify begin
+    if (YES) {
+        // kicte modify
+        completionHandler(UNAuthorizationOptionSound | UNAuthorizationOptionAlert);
+    } else {
+        // kicte original
+        completionHandler(UNNotificationPresentationOptionNone);
+    }
+    // kicte modify end
 }
 
 // Handle notification messages after display notification is tapped by the user.
@@ -112,7 +125,14 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:userInfoMutable options:0 error:&error];
     NSLog(@"APP WAS CLOSED DURING PUSH RECEPTION Saved data: %@", jsonData);
     lastPush = jsonData;
-    
+    // kicte add begin
+    UIApplication *application = [UIApplication sharedApplication];
+    if (application.applicationState == UIApplicationStateActive) {
+        if (lastPush != nil) {
+            [FCMPlugin.fcmPlugin notifyOfMessage:lastPush];
+        }
+    }
+    // kicte add end
     completionHandler();
 }
 

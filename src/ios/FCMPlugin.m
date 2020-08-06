@@ -30,6 +30,12 @@ static FCMPlugin *fcmPluginInstance;
         CDVPluginResult* pluginResult = nil;
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        // kicte add begin
+        NSData* lastPush = [AppDelegate getLastPush];
+        if (lastPush != nil) {
+            [FCMPlugin.fcmPlugin notifyOfMessage:lastPush];
+        }
+        // kicte add end
     }];
 }
 
@@ -137,7 +143,17 @@ static FCMPlugin *fcmPluginInstance;
     notificatorReceptorReady = YES;
     NSData* lastPush = [AppDelegate getLastPush];
     if (lastPush != nil) {
-        [FCMPlugin.fcmPlugin notifyOfMessage:lastPush];
+        // kicte modify begin
+        if (YES) {
+            // kicte modify
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [FCMPlugin.fcmPlugin notifyOfMessage:lastPush];
+            });
+        } else {
+            // kicte original
+            [FCMPlugin.fcmPlugin notifyOfMessage:lastPush];
+        }
+        // kicte modify end
     }
     
     CDVPluginResult* pluginResult = nil;
@@ -149,7 +165,23 @@ static FCMPlugin *fcmPluginInstance;
     NSString* JSONString = [[NSString alloc] initWithBytes:[payload bytes] length:[payload length] encoding:NSUTF8StringEncoding];
     NSString* notifyJS = [NSString stringWithFormat:@"%@(%@);", notificationCallback, JSONString];
     NSLog(@"stringByEvaluatingJavaScriptFromString %@", notifyJS);
-    [self runJS:notifyJS];
+    // kicte modify begin
+    if (YES) {
+        // kicte modify
+        NSError *error;
+        NSDictionary *dicData = [NSJSONSerialization JSONObjectWithData:payload options:0 error:&error];
+        NSString *url = [dicData objectForKey:@"url"];
+        if (url != nil && [url length] > 0) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                NSURLRequest *request = [[NSURLRequest alloc] initWithURL:[NSURL URLWithString:url]];
+                [(WKWebView *)self.webView loadRequest:request];
+            });
+        }
+    } else {
+        // kicte original
+        [self runJS:notifyJS];
+    }
+    // kicte modify end
 }
 
 - (void)notifyFCMTokenRefresh:(NSString *)token {
